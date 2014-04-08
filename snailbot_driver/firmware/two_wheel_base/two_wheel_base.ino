@@ -65,7 +65,7 @@ void motorsCallback( const snailbot_msgs::Motors& motors_msg)
   right_motor.set_pwm(motors_msg.rightPWM);
 }
 
-rover5::RawOdom odom_msg;
+snailbot_msgs::RawOdom odom_msg;
 ros::Publisher raw_odom("raw_odom", &odom_msg);
 ros::Subscriber<snailbot_msgs::Motors> cmd_motors("cmd_motors", motorsCallback);
 
