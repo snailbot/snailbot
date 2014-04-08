@@ -1,5 +1,5 @@
 <?xml version="1.0"?>
 <launch>
-	<param name="robot_description" command="cat $(find snailbot)/urdf/snailbot.urdf" /> 
+	<param name="robot_description" command="cat $(find snailbot_description)/urdf/snailbot.urdf" /> 
 	<node pkg="robot_state_publisher" type="robot_state_publisher" name="robot_state_publister" />
 </launch>
