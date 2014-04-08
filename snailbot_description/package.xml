@@ -1,0 +1,16 @@
+<?xml version="1.0"?>
+<package>
+  <name>snailbot_description</name>
+  <version>0.0.0</version>
+  <description>The snailbot URDF description</description>
+  <maintainer email="tony.baltovski@gmail.com">Tony Baltovski</maintainer>
+  <license>BSD</license>
+  <author email="tony.baltovski@gmail.com">Tony Baltovski</author>
+
+  <buildtool_depend>catkin</buildtool_depend>
+  <run_depend>robot_state_publisher</run_depend>
+  <run_depend>urdf</run_depend>
+
+  <export>
+  </export>
+</package>
