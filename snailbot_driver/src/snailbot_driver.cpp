@@ -55,10 +55,10 @@ Snailbot::Snailbot(ros::NodeHandle nh, ros::NodeHandle nh_private):
 {
 	//ROS params
 	// TODO
-	motor_pub_ = nh_.advertise<snailbot_msgs::Motors>("/cmd_motors", 5);
-	odom_pub_ = nh_.advertise<nav_msgs::Odometry>("/odom", 5);
-	raw_sub_ = nh_.subscribe("/raw_odom", 5, &Snailbot::rawOdomCallback,this,ros::TransportHints().tcpNoDelay());	
-	vel_sub_ = nh_.subscribe("/cmd_vel", 5, &Snailbot::cmdVelCallback,this,ros::TransportHints().tcpNoDelay());
+	motor_pub_ = nh_.advertise<snailbot_msgs::Motors>("cmd_motors", 5);
+	odom_pub_ = nh_.advertise<nav_msgs::Odometry>("odom", 5);
+	raw_sub_ = nh_.subscribe("raw_odom", 5, &Snailbot::rawOdomCallback,this,ros::TransportHints().tcpNoDelay());	
+	vel_sub_ = nh_.subscribe("cmd_vel", 5, &Snailbot::cmdVelCallback,this,ros::TransportHints().tcpNoDelay());
 	dynamic_reconfigure::Server<snailbot_driver::MotorGainsConfig>::CallbackType f = boost::bind(&Snailbot::motorGainsCallback, this, _1, _2);
 	gain_server_.setCallback(f);	
 	if (encoder_on_motor_shaft_)
@@ -129,8 +129,8 @@ void Snailbot::rawOdomCallback(const snailbot_msgs::RawOdom::ConstPtr& raw_msg)
 
 	geometry_msgs::TransformStamped odom_trans;
 	odom_trans.header.stamp = encoder_current_time_;
-	odom_trans.header.frame_id = "/odom";
-	odom_trans.child_frame_id = "/base_footprint";
+	odom_trans.header.frame_id = "odom";
+	odom_trans.child_frame_id = "base_footprint";
 	odom_trans.transform.translation.x = x_;
 	odom_trans.transform.translation.y = y_;
 	odom_trans.transform.translation.z = 0.0;
@@ -138,8 +138,8 @@ void Snailbot::rawOdomCallback(const snailbot_msgs::RawOdom::ConstPtr& raw_msg)
 	odom_broadcaster_->sendTransform(odom_trans);
    
 	odom.header.stamp = encoder_current_time_;
-	odom.header.frame_id = "/odom";
-	odom.child_frame_id = "/base_footprint";
+	odom.header.frame_id = "odom";
+	odom.child_frame_id = "base_footprint";
 	odom.pose.pose.position.x = x_;
 	odom.pose.pose.position.y = y_;
 	odom.pose.pose.position.z = 0.0;

@@ -76,13 +76,13 @@ public:
 	void initSubscribers()
 	{
 		//Init Subs
-		joy_sub_ = nh_.subscribe<sensor_msgs::Joy>("/joy", 10, &JoystickTeleop::joyCallback, this,ros::TransportHints().tcpNoDelay());
+		joy_sub_ = nh_.subscribe<sensor_msgs::Joy>("joy", 10, &JoystickTeleop::joyCallback, this,ros::TransportHints().tcpNoDelay());
 	}
 
 	void initPublishers()
 	{
 		//Init Pub
-		vel_pub_ = nh_.advertise<geometry_msgs::Twist>("/cmd_vel", 1);
+		vel_pub_ = nh_.advertise<geometry_msgs::Twist>("cmd_vel", 1);
 	}
 
 	void joyCallback(const sensor_msgs::Joy::ConstPtr& joy)
