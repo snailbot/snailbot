@@ -54,20 +54,25 @@ volatile long  left_encoder_counts = 0;
 volatile long right_encoder_counts = 0;
 int encoder_table[16] = {0,-1,1,2,1,0,2,-1,-1,2,0,1,2,1,-1,0};
 
-ros::NodeHandle  nh;
 static uint32_t last_time = 0;
 //SPEAKER
 #define SPEAKER 13
 
-void motorsCallback( const snailbot_msgs::Motors& motors_msg) 
-{
-  left_motor.set_pwm(motors_msg.leftPWM);
-  right_motor.set_pwm(motors_msg.rightPWM);
-}
+//ROS node
+ros::NodeHandle  nh;
 
+//ROS subribers/service callbacks
+void motorsCallback( const snailbot_msgs::Motors& motors_msg); 
+
+//ROS subsribers
+ros::Subscriber<snailbot_msgs::Motors> sub_cmd_motors("cmd_motors", motorsCallback);
+
+//ROS publishers msgs
 snailbot_msgs::RawOdom odom_msg;
-ros::Publisher raw_odom("raw_odom", &odom_msg);
-ros::Subscriber<snailbot_msgs::Motors> cmd_motors("cmd_motors", motorsCallback);
+
+//ROS publishers
+ros::Publisher pub_raw_odom("raw_odom", &odom_msg);
+
 
 void setup() 
 { 
@@ -92,11 +97,16 @@ void setup()
   attachInterrupt(6, rightUpdateEncoder, CHANGE); 
   attachInterrupt(7, rightUpdateEncoder, CHANGE);
 
-  start_tune(SPEAKER);
-
   nh.initNode();
-  nh.advertise(raw_odom);
-  nh.subscribe(cmd_motors);
+  nh.advertise(pub_raw_odom);
+  nh.subscribe(sub_cmd_motors);
+  
+  while (!nh.connected()) 
+  {
+    nh.spinOnce();
+  }
+  nh.loginfo("Connected to microcontroller.");
+  start_tune(SPEAKER);
 } 
 
 void loop() 
@@ -105,7 +115,7 @@ void loop()
   {
     odom_msg.left = left_encoder_counts;
     odom_msg.right = right_encoder_counts;
-    raw_odom.publish(&odom_msg);
+    pub_raw_odom.publish(&odom_msg);
     last_time = millis();
   }
   nh.spinOnce();
@@ -124,4 +134,9 @@ void rightUpdateEncoder(){
   right_old = right_current;
 }
 
+void motorsCallback( const snailbot_msgs::Motors& motors_msg) 
+{
+  left_motor.set_pwm(motors_msg.leftPWM);
+  right_motor.set_pwm(motors_msg.rightPWM);
+}
 
