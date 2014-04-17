@@ -26,12 +26,30 @@
         		<mesh filename="package://snailbot_description/meshes/snailbot.stl"  scale="0.001 0.001 0.001"/>
       		</geometry>
         </visual>    
+        <material name="">
+        	<color
+          rgba="0.2 0.2 0.2 1" />
+      	</material>
+    </link>
+    <link name="camera_link">
+         <visual>
+					<origin xyz="0 0 0" rpy="0 0 0" />
+      		<geometry>
+        		<mesh filename="package://snailbot_description/meshes/xtion.stl" />
+      		</geometry>
+        </visual>    
     </link>
 
     <joint name="base_footprint_joint" type="fixed">
 		<origin xyz="0 0 0" rpy="0 0 0" />
         <parent link="base_footprint"/>
         <child link="base_link" />
+    </joint>
+
+    <joint name="camera_joint" type="fixed">
+		<origin xyz="0 0 0" rpy="0 0 0" />
+        <parent link="base_link"/>
+        <child link="camera_link" />
     </joint>
 
  </robot>
