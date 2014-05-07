@@ -31,6 +31,8 @@
 		</material>
 	</link>
 
+	<!-- CAMERA-LINK -->
+	<!-- Asus xtion for navigation -->
 	<link name="camera_link">
 		<visual>
 			<origin xyz="0.1 0 0.1" rpy="1.5708 0 0" />
