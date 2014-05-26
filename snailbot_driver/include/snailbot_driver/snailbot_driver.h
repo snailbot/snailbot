@@ -29,8 +29,6 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
-#pragma once
-
 #ifndef _SNAILBOT_DRIVER_H_
 #define _SNAILBOT_DRIVER_H_
 
