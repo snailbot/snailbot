@@ -50,8 +50,11 @@ Snailbot::Snailbot(ros::NodeHandle nh, ros::NodeHandle nh_private):
 	wheel_radius_(0.120/2.0),
 	base_width_(0.225),
 	velocity_control_freq_(20.0),
-	pwm_range_(255),
-	pwm_min_(160)
+	previous_error_left_(0.0),
+	total_error_left_(0.0),
+	previous_error_right_(0.0),
+	total_error_right_(0.0),
+	pwm_range_(255)
 {
 	//ROS params
 	// TODO
@@ -89,8 +92,8 @@ void Snailbot::cmdVelCallback(const geometry_msgs::Twist::ConstPtr& vel_msg)
 		snailbot_msgs::Motors motors_current_cmd;
 		double error_vel_right = velocity_desired_right - velocity_estimate_right_;
 		double error_vel_left = velocity_desired_left - velocity_estimate_left_;
-		motors_current_cmd.leftPWM = pwmBound((error_vel_left * (K_left_P_ + K_left_I_*dt + K_left_D_/dt)) + motors_previous_cmd_.leftPWM);
-		motors_current_cmd.rightPWM = pwmBound((error_vel_right * (K_right_P_ + K_right_I_*dt + K_right_D_/dt)) + motors_previous_cmd_.rightPWM);
+		motors_current_cmd.leftPWM = pwmBound((error_vel_left * K_left_P_ + K_left_I_*total_error_left_ + (K_left_D_*(error_vel_left - previous_error_left_)/dt)));
+		motors_current_cmd.rightPWM = pwmBound((error_vel_right * K_right_P_ + K_right_I_*total_error_right_ + (K_right_D_*(error_vel_right - previous_error_right_)/dt)));
 		motor_pub_.publish(motors_current_cmd);
 		control_previous_time_ = control_current_time_;
 		motors_previous_cmd_ = motors_current_cmd;

@@ -85,6 +85,8 @@ private:
 	double base_width_;	// [m]
 	double meters_per_counts_; // [m/counts]
 	// Vehicle control variables
+	double previous_error_left_, total_error_left_;
+	double previous_error_right_, total_error_right_;
 	double K_left_P_, K_left_I_, K_left_D_;
 	double K_right_P_, K_right_I_, K_right_D_;
 	double velocity_estimate_left_, velocity_estimate_right_;
@@ -103,5 +105,3 @@ public:
 	virtual ~Snailbot();
 };
 #endif // _SNAILBOT_DRIVER_H
-
-
