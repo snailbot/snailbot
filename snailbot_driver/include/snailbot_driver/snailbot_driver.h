@@ -77,7 +77,6 @@ private:
 	long int old_left_counts_;	// [counts]
 	// Vehicle characteristics
 	int pwm_range_;
-	int pwm_min_;
 	int counts_per_rev_;	// [counts/rev]
 	double gear_ratio_;
 	bool encoder_on_motor_shaft_;
