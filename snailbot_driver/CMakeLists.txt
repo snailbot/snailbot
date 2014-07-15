@@ -12,7 +12,7 @@ catkin_package(
 	 DEPENDS
 	 CATKIN_DEPENDS roscpp geometry_msgs tf dynamic_reconfigure
    INCLUDE_DIRS include
-   LIBRARIES rover5_driver
+   LIBRARIES snailbot_driver
 )
 
 ###########

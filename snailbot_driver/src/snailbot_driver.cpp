@@ -45,7 +45,7 @@ Snailbot::Snailbot(ros::NodeHandle nh, ros::NodeHandle nh_private):
 	old_right_counts_(0),
 	old_left_counts_(0),
 	counts_per_rev_(48),
-	gear_ratio_(75/1),
+	gear_ratio_(75.0/1.0),
 	encoder_on_motor_shaft_(true),
 	wheel_radius_(0.120/2.0),
 	base_width_(0.225),
@@ -85,7 +85,7 @@ void Snailbot::cmdVelCallback(const geometry_msgs::Twist::ConstPtr& vel_msg)
 	// TODO Maybe move the this to its own node
 	control_current_time_ = ros::Time::now();
 	double dt = (control_current_time_ - control_previous_time_).toSec();
-	if ( dt >= (1/velocity_control_freq_))
+	if (dt >= (1/velocity_control_freq_))
 	{
 		double velocity_desired_right = (vel_msg->linear.x + ((base_width_ / 2) * vel_msg->angular.z));
 		double velocity_desired_left = (vel_msg->linear.x + ((base_width_ / -2) * vel_msg->angular.z));	
