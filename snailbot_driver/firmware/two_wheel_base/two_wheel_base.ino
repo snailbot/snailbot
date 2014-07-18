@@ -98,6 +98,7 @@ void setup()
   attachInterrupt(7, rightUpdateEncoder, CHANGE);
 
   nh.initNode();
+  nh.getHardware()->setBaud(115200);
   nh.advertise(pub_raw_odom);
   nh.subscribe(sub_cmd_motors);
   
