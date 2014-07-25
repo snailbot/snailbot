@@ -77,7 +77,7 @@ private:
 	long int old_left_counts_;	// [counts]
 	// Vehicle characteristics
 	int pwm_range_;
-	int counts_per_rev_;	// [counts/rev]
+	double counts_per_rev_;	// [counts/rev]
 	double gear_ratio_;
 	bool encoder_on_motor_shaft_;
 	double wheel_radius_;	// [m]
@@ -93,14 +93,14 @@ private:
 	ros::Time control_current_time_;
 	ros::Time control_previous_time_;
 	snailbot_msgs::Motors motors_previous_cmd_;
-	int pwm_bound(int pwm);
+	int pwmBound(int pwm);
 	// ROS Member functions
-	void cmd_vel_callback(const geometry_msgs::TwistConstPtr& vel_msg);
-	void raw_odom_callback(const snailbot_msgs::RawOdomConstPtr& raw_msg);
-	void motor_gains_callback(snailbot_driver::MotorGainsConfig &config, uint32_t level);
+	void cmdVelCallback(const geometry_msgs::Twist::ConstPtr& vel_msg);
+	void rawOdomCallback(const snailbot_msgs::RawOdom::ConstPtr& raw_msg);
+	void motorGainsCallback(snailbot_driver::MotorGainsConfig &config, uint32_t level);
 
 public:
 	Snailbot(ros::NodeHandle nh, ros::NodeHandle nh_private);
 	virtual ~Snailbot();
 };
-#endif // _SNAILBOT_DRIVER_H
+#endif // _SNAILBOT_DRIVER_H_

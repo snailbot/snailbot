@@ -44,26 +44,27 @@ Snailbot::Snailbot(ros::NodeHandle nh, ros::NodeHandle nh_private):
 	left_counts_(0),
 	old_right_counts_(0),
 	old_left_counts_(0),
-	counts_per_rev_(48),
-	gear_ratio_(75.0/1.0),
-	encoder_on_motor_shaft_(true),
-	wheel_radius_(0.120/2.0),
-	base_width_(0.225),
-	velocity_control_freq_(20.0),
 	previous_error_left_(0.0),
 	total_error_left_(0.0),
 	previous_error_right_(0.0),
-	total_error_right_(0.0),
-	pwm_range_(255)
+	total_error_right_(0.0)
 {
-	//ROS params
-	// TODO
 	motor_pub_ = nh_.advertise<snailbot_msgs::Motors>("cmd_motors", 5);
 	odom_pub_ = nh_.advertise<nav_msgs::Odometry>("odom", 5);
-	raw_sub_ = nh_.subscribe("raw_odom", 5, &Snailbot::raw_odom_callback,this,ros::TransportHints().tcpNoDelay());	
-	vel_sub_ = nh_.subscribe("cmd_vel", 5, &Snailbot::cmd_vel_callback,this,ros::TransportHints().tcpNoDelay());
-	dynamic_reconfigure::Server<snailbot_driver::MotorGainsConfig>::CallbackType f = boost::bind(&Snailbot::motor_gains_callback, this, _1, _2);
+	raw_sub_ = nh_.subscribe("raw_odom", 5, &Snailbot::rawOdomCallback,this,ros::TransportHints().tcpNoDelay());	
+	vel_sub_ = nh_.subscribe("cmd_vel", 5, &Snailbot::cmdVelCallback,this,ros::TransportHints().tcpNoDelay());
+	dynamic_reconfigure::Server<snailbot_driver::MotorGainsConfig>::CallbackType f = boost::bind(&Snailbot::motorGainsCallback, this, _1, _2);
 	gain_server_.setCallback(f);	
+
+	//ROS driver params
+	nh_private.param<double>("counts_per_rev", counts_per_rev_, 48.0);
+	nh_private.param<double>("gear_ratio", gear_ratio_, (75.0/1.0));
+	nh_private.param<bool>("encoder_on_motor_shaft", encoder_on_motor_shaft_, true);
+	nh_private.param<double>("wheel_radius", wheel_radius_, (0.120/2.0));
+	nh_private.param<double>("base_width", base_width_ , 0.225);
+	nh_private.param<double>("velocity_control_freq", velocity_control_freq_, 20.0);
+	nh_private.param<int>("pwm_range", pwm_range_, 255);
+
 	if (encoder_on_motor_shaft_)
 	{
 		meters_per_counts_ = ((M_PI * 2 * wheel_radius_) / (counts_per_rev_ * gear_ratio_));
@@ -80,9 +81,8 @@ Snailbot::~Snailbot()
 }
 
 
-void Snailbot::cmd_vel_callback(const geometry_msgs::TwistConstPtr& vel_msg)
+void Snailbot::cmdVelCallback(const geometry_msgs::Twist::ConstPtr& vel_msg)
 {
-	// TODO Maybe move the this to its own node
 	control_current_time_ = ros::Time::now();
 	double dt = (control_current_time_ - control_previous_time_).toSec();
 	if (dt >= (1/velocity_control_freq_))
@@ -92,15 +92,15 @@ void Snailbot::cmd_vel_callback(const geometry_msgs::TwistConstPtr& vel_msg)
 		snailbot_msgs::Motors motors_current_cmd;
 		double error_vel_right = velocity_desired_right - velocity_estimate_right_;
 		double error_vel_left = velocity_desired_left - velocity_estimate_left_;
-		motors_current_cmd.leftPWM = pwm_bound((error_vel_left * K_left_P_ + K_left_I_*total_error_left_ + (K_left_D_*(error_vel_left - previous_error_left_)/dt)));
-		motors_current_cmd.rightPWM = pwm_bound((error_vel_right * K_right_P_ + K_right_I_*total_error_right_ + (K_right_D_*(error_vel_right - previous_error_right_)/dt)));
+		motors_current_cmd.leftPWM = pwmBound((error_vel_left * K_left_P_ + K_left_I_*total_error_left_ + (K_left_D_*(error_vel_left - previous_error_left_)/dt)));
+		motors_current_cmd.rightPWM = pwmBound((error_vel_right * K_right_P_ + K_right_I_*total_error_right_ + (K_right_D_*(error_vel_right - previous_error_right_)/dt)));
 		motor_pub_.publish(motors_current_cmd);
 		control_previous_time_ = control_current_time_;
 		motors_previous_cmd_ = motors_current_cmd;
 	}
 }
 
-void Snailbot::motor_gains_callback(snailbot_driver::MotorGainsConfig &config, uint32_t level) 
+void Snailbot::motorGainsCallback(snailbot_driver::MotorGainsConfig &config, uint32_t level) 
 {
 	K_left_P_ = config.K_left_P;
 	K_left_I_ = config.K_left_I;
@@ -110,7 +110,7 @@ void Snailbot::motor_gains_callback(snailbot_driver::MotorGainsConfig &config, u
 	K_right_D_ = config.K_right_D;
 	ROS_INFO("Motor Gains changed to Left P:%f I:%f D: %f and Right P:%f I:%f D:%f",K_left_P_,K_left_I_,K_left_D_,K_right_P_,K_right_I_,K_right_D_);
 }
-void Snailbot::raw_odom_callback(const snailbot_msgs::RawOdomConstPtr& raw_msg)
+void Snailbot::rawOdomCallback(const snailbot_msgs::RawOdom::ConstPtr& raw_msg)
 {
 	encoder_current_time_ = ros::Time::now();
 	odom_broadcaster_ = new tf::TransformBroadcaster();  
@@ -173,7 +173,7 @@ void Snailbot::raw_odom_callback(const snailbot_msgs::RawOdomConstPtr& raw_msg)
 	old_left_counts_ = left_counts_;
 }
 
-int Snailbot::pwm_bound(int pwm)
+int Snailbot::pwmBound(int pwm)
 {
 	if (pwm > pwm_range_)
 		return pwm_range_;

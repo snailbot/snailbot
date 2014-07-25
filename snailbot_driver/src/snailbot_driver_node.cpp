@@ -34,8 +34,7 @@ POSSIBILITY OF SUCH DAMAGE.
 int main(int argc, char **argv)
 {
 	ros::init(argc, argv, "snailbot_driver_node");
-	ros::NodeHandle nh;
-	ros::NodeHandle nh_private("~");
+        ros::NodeHandle nh(""), nh_private("~");
 	Snailbot snailbot(nh, nh_private);
 	ros::spin();
 	return 0;
