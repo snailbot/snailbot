@@ -35,17 +35,18 @@
 #include "PololuMC33926.h"
 #include "boot_buzzer.h"
 
-//Motor Driver Pins
+// Motor Driver Pins
 MC33926 left_motor(2,3,4,5);
 MC33926 right_motor(12,11,10,9);
-//Left Side Encoder
-#define LEFT_ENCODER_A 14  //Interrupt on Teensy 3.0
-#define LEFT_ENCODER_B 15 //Interrupt on Teensy 3.0
-//Right Side Encoder
-#define RIGHT_ENCODER_A 6  //Interrupt on Teensy 3.0
-#define RIGHT_ENCODER_B 7  //Interrupt on Teensy 3.0
 
-//Encoder variables
+// Left Side Encoder
+#define LEFT_ENCODER_A 14  // Interrupt on Teensy 3.0
+#define LEFT_ENCODER_B 15 // Interrupt on Teensy 3.0
+// Right Side Encoder
+#define RIGHT_ENCODER_A 6  // Interrupt on Teensy 3.0
+#define RIGHT_ENCODER_B 7  // Interrupt on Teensy 3.0
+
+// Encoder variables
 volatile int left_old;
 volatile int right_old;
 volatile int left_current;
@@ -55,16 +56,16 @@ volatile long right_encoder_counts = 0;
 int encoder_table[16] = {0,-1,1,2,1,0,2,-1,-1,2,0,1,2,1,-1,0};
 
 static uint32_t last_time = 0;
-//SPEAKER
+// SPEAKER
 #define SPEAKER 13
 
-//ROS node
+// ROS node
 ros::NodeHandle  nh;
 
-//ROS subribers/service callbacks
+// ROS subribers/service callbacks
 void motorsCallback( const snailbot_msgs::Motors& motors_msg); 
 
-//ROS subsribers
+// ROS subsribers
 ros::Subscriber<snailbot_msgs::Motors> sub_cmd_motors("cmd_motors", motorsCallback);
 
 //ROS publishers msgs
@@ -91,14 +92,16 @@ void setup()
   digitalWrite(RIGHT_ENCODER_B, HIGH); //turn pullup resistor on
   digitalWrite(SPEAKER, LOW); //turn pullup resistor on
 
-  //Add interrupt for encoders
+  // Add interrupt for encoders
   attachInterrupt(14, leftUpdateEncoder, CHANGE); 
   attachInterrupt(15, leftUpdateEncoder, CHANGE);
   attachInterrupt(6, rightUpdateEncoder, CHANGE); 
   attachInterrupt(7, rightUpdateEncoder, CHANGE);
 
-  nh.initNode();
   nh.getHardware()->setBaud(115200);
+  nh.initNode();
+
+  // Pub/Sub
   nh.advertise(pub_raw_odom);
   nh.subscribe(sub_cmd_motors);
   
@@ -120,7 +123,6 @@ void loop()
     last_time = millis();
   }
   nh.spinOnce();
-  
 }
 
 void leftUpdateEncoder(){
