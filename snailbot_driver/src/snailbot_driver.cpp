@@ -51,8 +51,8 @@ Snailbot::Snailbot(ros::NodeHandle nh, ros::NodeHandle nh_private):
 {
 	motor_pub_ = nh_.advertise<snailbot_msgs::Motors>("cmd_motors", 5);
 	odom_pub_ = nh_.advertise<nav_msgs::Odometry>("odom", 5);
-	raw_sub_ = nh_.subscribe("raw_odom", 5, &Snailbot::rawOdomCallback,this,ros::TransportHints().tcpNoDelay());	
-	vel_sub_ = nh_.subscribe("cmd_vel", 5, &Snailbot::cmdVelCallback,this,ros::TransportHints().tcpNoDelay());
+	raw_sub_ = nh_.subscribe("raw_odom", 5, &Snailbot::rawOdomCallback,this, ros::TransportHints().unreliable().reliable().tcpNoDelay());	
+	vel_sub_ = nh_.subscribe("cmd_vel", 5, &Snailbot::cmdVelCallback,this);
 	dynamic_reconfigure::Server<snailbot_driver::MotorGainsConfig>::CallbackType f = boost::bind(&Snailbot::motorGainsCallback, this, _1, _2);
 	gain_server_.setCallback(f);	
 
