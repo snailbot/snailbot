@@ -32,19 +32,22 @@
 #include <ros.h>
 #include <snailbot_msgs/RawOdom.h>
 #include <snailbot_msgs/Motors.h>
-#include "PololuMC33926.h"
 #include "boot_buzzer.h"
 
 // Motor Driver Pins
-MC33926 left_motor(2,3,4,5);
-MC33926 right_motor(12,11,10,9);
+//Left Motor
+#define left_motor_pwm 7
+#define left_motor_enable 6
+//Right Motor
+#define right_motor_enable 5                      
+#define right_motor_pwm 4
 
 // Left Side Encoder
-#define LEFT_ENCODER_A 14  // Interrupt on Teensy 3.0
-#define LEFT_ENCODER_B 15 // Interrupt on Teensy 3.0
+#define LEFT_ENCODER_A 2  // Interrupt on Teensy 3.0
+#define LEFT_ENCODER_B 3 // Interrupt on Teensy 3.0
 // Right Side Encoder
-#define RIGHT_ENCODER_A 6  // Interrupt on Teensy 3.0
-#define RIGHT_ENCODER_B 7  // Interrupt on Teensy 3.0
+#define RIGHT_ENCODER_A 18  // Interrupt on Teensy 3.0
+#define RIGHT_ENCODER_B 19 // Interrupt on Teensy 3.0
 
 // Encoder variables
 volatile int left_old;
@@ -78,8 +81,6 @@ ros::Publisher pub_raw_odom("raw_odom", &odom_msg);
 void setup() 
 { 
   //Set pin mode
-  left_motor.init();
-  right_motor.init();
   pinMode(LEFT_ENCODER_A, INPUT);
   pinMode(LEFT_ENCODER_B, INPUT);
   pinMode(RIGHT_ENCODER_A, INPUT);
@@ -93,10 +94,10 @@ void setup()
   digitalWrite(SPEAKER, LOW); //turn pullup resistor on
 
   // Add interrupt for encoders
-  attachInterrupt(14, leftUpdateEncoder, CHANGE); 
-  attachInterrupt(15, leftUpdateEncoder, CHANGE);
-  attachInterrupt(6, rightUpdateEncoder, CHANGE); 
-  attachInterrupt(7, rightUpdateEncoder, CHANGE);
+  attachInterrupt(0, leftUpdateEncoder, CHANGE); 
+  attachInterrupt(1, leftUpdateEncoder, CHANGE);
+  attachInterrupt(4, rightUpdateEncoder, CHANGE); 
+  attachInterrupt(5, rightUpdateEncoder, CHANGE);
 
   nh.getHardware()->setBaud(115200);
   nh.initNode();
@@ -115,7 +116,7 @@ void setup()
 
 void loop() 
 {
-  if (millis() - last_time >= 10)
+  if (millis() - last_time >= 40)
   {
     odom_msg.left = left_encoder_counts;
     odom_msg.right = right_encoder_counts;
@@ -139,7 +140,17 @@ void rightUpdateEncoder(){
 
 void motorsCallback( const snailbot_msgs::Motors& motors_msg) 
 {
-  left_motor.set_pwm(motors_msg.leftPWM);
-  right_motor.set_pwm(motors_msg.rightPWM);
+  if(motors_msg.leftPWM >= 0)
+    digitalWrite(left_motor_pwm, 1); 
+  else
+      digitalWrite(left_motor_pwm, 0);
+  if(motors_msg.rightPWM >= 0)
+    digitalWrite(right_motor_pwm, 1); 
+  else
+      digitalWrite(right_motor_pwm, 0);
+  analogWrite(left_motor_enable,abs(motors_msg.leftPWM));
+  analogWrite(right_motor_enable,abs(motors_msg.rightPWM));
 }
+
+
 
