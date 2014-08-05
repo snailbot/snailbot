@@ -47,7 +47,7 @@ private:
 	int angular_;
 	double linear_scale_;
 	double angular_scale_;
-	int trigger_;
+	int deadman_switch_;
 
 public:
 	JoystickTeleop() :
@@ -55,15 +55,15 @@ public:
 		linear_(1),
 		linear_scale_(0.5),
 		angular_(0),
-		angular_scale_(2),
-		trigger_(0)
+		angular_scale_(2.0),
+		deadman_switch_(0)
 		{
 		//ROS Parameters
-		nh_.param("axis_linear", linear_, linear_);
-		nh_.param("axis_angular", angular_, angular_);
-		nh_.param("scale_angular", angular_scale_, angular_scale_);
-		nh_.param("scale_linear", linear_scale_, linear_scale_);
-		nh_.param("deadman_switch", trigger_, trigger_);
+		nh_.param<int>("axis_linear", linear_, 1);
+		nh_.param<int>("axis_angular", angular_, 0);
+		nh_.param<double>("scale_angular", angular_scale_, 1.0);
+		nh_.param<double>("scale_linear", linear_scale_, 0.6);
+		nh_.param<int>("deadman_switch", deadman_switch_, 2);
 		//Init everything
 		initSubscribers();
 		initPublishers();
@@ -76,7 +76,7 @@ public:
 	void initSubscribers()
 	{
 		//Init Subs
-		joy_sub_ = nh_.subscribe<sensor_msgs::Joy>("joy", 10, &JoystickTeleop::joyCallback, this,ros::TransportHints().tcpNoDelay());
+		joy_sub_ = nh_.subscribe<sensor_msgs::Joy>("joy", 1, &JoystickTeleop::joyCallback, this);
 	}
 
 	void initPublishers()
@@ -88,15 +88,15 @@ public:
 	void joyCallback(const sensor_msgs::Joy::ConstPtr& joy)
 	{
 		geometry_msgs::Twist vel_msg;
-		if (joy->buttons[trigger_])
+		if (joy->buttons[deadman_switch_])
 		{
 			vel_msg.angular.z = angular_scale_*joy->axes[angular_];
 			vel_msg.linear.x = linear_scale_*joy->axes[linear_];
 		}
 		else
 		{
-			vel_msg.angular.z = 0;
-			vel_msg.linear.x = 0;
+			vel_msg.angular.z = 0.0;
+			vel_msg.linear.x = 0.0;
 		}
 			vel_pub_.publish(vel_msg);
 	}
