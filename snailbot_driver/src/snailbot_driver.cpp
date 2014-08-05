@@ -45,7 +45,7 @@ Snailbot::Snailbot(ros::NodeHandle nh, ros::NodeHandle nh_private):
 	old_right_counts_(0),
         old_left_counts_(0)
 {
-        cmd_diff_vel_pub_ = nh_.advertise<snailbot_msgs::CmdDiffVel>("cmd_diff_vel", 5);
+  cmd_diff_vel_pub_ = nh_.advertise<snailbot_msgs::CmdDiffVel>("cmd_diff_vel", 5);
 	odom_pub_ = nh_.advertise<nav_msgs::Odometry>("odom", 5);
 	encoders_sub_ = nh_.subscribe("encoders", 5, &Snailbot::encodersCallback,this, ros::TransportHints().unreliable().reliable().tcpNoDelay());	
 	cmd_vel_sub_ = nh_.subscribe("cmd_vel", 5, &Snailbot::cmdVelCallback,this);	
