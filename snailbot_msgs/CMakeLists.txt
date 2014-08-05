@@ -5,8 +5,8 @@ find_package(catkin REQUIRED COMPONENTS message_generation)
 
  add_message_files(
    FILES
-   RawOdom.msg
-   Motors.msg
+   Encoders.msg
+   CmdDiffVel.msg
  )
 
 generate_messages()

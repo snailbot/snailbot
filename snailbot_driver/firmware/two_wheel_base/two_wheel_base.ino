@@ -30,127 +30,232 @@
  */
 
 #include <ros.h>
-#include <snailbot_msgs/RawOdom.h>
-#include <snailbot_msgs/Motors.h>
+#include <snailbot_msgs/Encoders.h>
+#include <snailbot_msgs/CmdDiffVel.h>
+#include <Encoder.h>
+#include <PololuMC33926.h>
 #include "boot_buzzer.h"
 
-// Motor Driver Pins
-//Left Motor
-#define left_motor_pwm 7
-#define left_motor_enable 6
-//Right Motor
-#define right_motor_enable 5                      
-#define right_motor_pwm 4
+// Left and Right motor driver objects
+MC33926 left_motor(2,3,4,5);
+MC33926 right_motor(12,11,10,9);
 
-// Left Side Encoder
-#define LEFT_ENCODER_A 2  // Interrupt on Teensy 3.0
-#define LEFT_ENCODER_B 3 // Interrupt on Teensy 3.0
-// Right Side Encoder
-#define RIGHT_ENCODER_A 18  // Interrupt on Teensy 3.0
-#define RIGHT_ENCODER_B 19 // Interrupt on Teensy 3.0
+// Left side encoders pins
+#define LEFT_ENCODER_A 14  // Interrupt on Teensy 3.0
+#define LEFT_ENCODER_B 15  // Interrupt on Teensy 3.0
+// Right side encoders pins
+#define RIGHT_ENCODER_A 6  // Interrupt on Teensy 3.0
+#define RIGHT_ENCODER_B 7  // Interrupt on Teensy 3.0
 
-// Encoder variables
-volatile int left_old;
-volatile int right_old;
-volatile int left_current;
-volatile int right_current;
-volatile long  left_encoder_counts = 0;
-volatile long right_encoder_counts = 0;
-int encoder_table[16] = {0,-1,1,2,1,0,2,-1,-1,2,0,1,2,1,-1,0};
+// Encoder objects from PJRC encoder library.
+Encoder left_encoder(LEFT_ENCODER_A,LEFT_ENCODER_B);
+Encoder right_encoder(RIGHT_ENCODER_A,RIGHT_ENCODER_B);
 
-static uint32_t last_time = 0;
+// Vehicle characteristics
+float counts_per_rev = 48.0;
+float gear_ratio = 75.0/1.0;
+boolean encoder_on_motor_shaft = true;
+float wheel_radius = 0.120/2.0; // [m]
+float meters_per_counts;  // [m/counts]
+int pwm_range = 255;
+
+typedef struct {
+  float desired_velocity;  // [m/s]
+  uint32_t current_time;  // [miliseconds]
+  uint32_t previous_time;  // [miliseconds]
+  long current_encoder;  // [counts]
+  long previous_encoder;  // [counts]
+  int previous_error;  // [m/s]  
+  int total_error;  // [m/s]
+  int command; // [PWM]
+}
+ControlData;
+
+// Gains
+int Kp = 20;
+int Ki = 0;
+int Kd = 15;
+int pid_gains[3] = {Kp,Ki,Kd};
+
+ControlData left_motor_controller;
+ControlData right_motor_controller;
+
+// Control methods prototypes
+void updateControl(ControlData * ctrl);
+void doControl(ControlData * ctrl);
+void Control();
+
+int control_rate[1] = {50};  // Hz
+int encoder_rate[1] = {50};  // Hz
+int no_cmd_timeout[1] = {2}; // seconds
+
+static uint32_t last_encoders_time;  // miliseconds
+static uint32_t last_cmd_time;  // miliseconds
+static uint32_t last_control_time;  // miliseconds
+
+
 // SPEAKER
 #define SPEAKER 13
 
 // ROS node
-ros::NodeHandle  nh;
+ros::NodeHandle_<ArduinoHardware, 10, 10, 1024, 1024> nh;
 
-// ROS subribers/service callbacks
-void motorsCallback( const snailbot_msgs::Motors& motors_msg); 
+// ROS subribers/service callbacks prototye
+void cmdDiffVelCallback( const snailbot_msgs::CmdDiffVel& diff_vel_msg); 
 
 // ROS subsribers
-ros::Subscriber<snailbot_msgs::Motors> sub_cmd_motors("cmd_motors", motorsCallback);
+ros::Subscriber<snailbot_msgs::CmdDiffVel> sub_diff_vel("cmd_diff_vel", cmdDiffVelCallback);
 
-//ROS publishers msgs
-snailbot_msgs::RawOdom odom_msg;
+// ROS publishers msgs
+snailbot_msgs::Encoders encoders_msg;
 
-//ROS publishers
-ros::Publisher pub_raw_odom("raw_odom", &odom_msg);
+// ROS publishers
+ros::Publisher pub_encoders("encoders", &encoders_msg);
 
 
 void setup() 
 { 
-  //Set pin mode
-  pinMode(LEFT_ENCODER_A, INPUT);
-  pinMode(LEFT_ENCODER_B, INPUT);
-  pinMode(RIGHT_ENCODER_A, INPUT);
-  pinMode(RIGHT_ENCODER_B, INPUT);
+  // Initalize Motors
+  left_motor.init();
+  right_motor.init();
+
+  // Speaker
   pinMode(SPEAKER, OUTPUT);
+  digitalWrite(SPEAKER, LOW); // Turn pullup resistor on
 
-  digitalWrite(LEFT_ENCODER_A, HIGH); //turn pullup resistor on
-  digitalWrite(LEFT_ENCODER_B, HIGH); //turn pullup resistor on
-  digitalWrite(RIGHT_ENCODER_A, HIGH); //turn pullup resistor on
-  digitalWrite(RIGHT_ENCODER_B, HIGH); //turn pullup resistor on
-  digitalWrite(SPEAKER, LOW); //turn pullup resistor on
-
-  // Add interrupt for encoders
-  attachInterrupt(0, leftUpdateEncoder, CHANGE); 
-  attachInterrupt(1, leftUpdateEncoder, CHANGE);
-  attachInterrupt(4, rightUpdateEncoder, CHANGE); 
-  attachInterrupt(5, rightUpdateEncoder, CHANGE);
-
+  // Set the node handle
   nh.getHardware()->setBaud(115200);
   nh.initNode();
 
   // Pub/Sub
-  nh.advertise(pub_raw_odom);
-  nh.subscribe(sub_cmd_motors);
-  
+  nh.advertise(pub_encoders);
+  nh.subscribe(sub_diff_vel);
+
+  // Wait for ROSserial to connect
   while (!nh.connected()) 
   {
     nh.spinOnce();
   }
   nh.loginfo("Connected to microcontroller.");
+  
+  // Look for node params TOODO(tonybaltovski)
+  if (!nh.getParam("pid_gains", pid_gains,3))
+  { 
+    nh.loginfo("Using default gains.");
+  } 
+  else
+  {
+    Kp = pid_gains[0];
+    Ki = pid_gains[1];
+    Kd = pid_gains[2];
+  }
+  
+  // compute the meters per count
+  if (encoder_on_motor_shaft == true)
+  {
+    meters_per_counts = ((PI * 2 * wheel_radius) / (counts_per_rev* gear_ratio));
+  }
+  else
+  {
+    meters_per_counts = ((PI * 2 * wheel_radius) / counts_per_rev);
+  }
   start_tune(SPEAKER);
+
 } 
 
 void loop() 
 {
-  if (millis() - last_time >= 40)
+  if ((millis() - last_encoders_time) >= (1000 / encoder_rate[0]))
+  { 
+    encoders_msg.left = left_encoder.read();
+    encoders_msg.right = right_encoder.read();
+    pub_encoders.publish(&encoders_msg);
+    last_encoders_time = millis();
+  }
+  if ((millis()) - last_control_time >= (1000 / control_rate[0]))
   {
-    odom_msg.left = left_encoder_counts;
-    odom_msg.right = right_encoder_counts;
-    pub_raw_odom.publish(&odom_msg);
-    last_time = millis();
+    Control();
+    last_control_time = millis();
+  }
+  // Stop motors after a period of no commands
+  if((millis() - last_cmd_time) >= (no_cmd_timeout[0] * 1000))
+  {
+    left_motor_controller.desired_velocity = 0.0;
+    right_motor_controller.desired_velocity = 0.0;
   }
   nh.spinOnce();
 }
 
-void leftUpdateEncoder(){
-  left_current = digitalRead(LEFT_ENCODER_A)*2 +digitalRead(LEFT_ENCODER_B);       
-  left_encoder_counts -= encoder_table[left_old*4 +left_current];
-  left_old = left_current;
-}
 
-void rightUpdateEncoder(){
-  right_current = digitalRead(RIGHT_ENCODER_A)*2 +digitalRead(RIGHT_ENCODER_B);      
-  right_encoder_counts -= encoder_table[right_old*4 +right_current];
-  right_old = right_current;
-}
-
-void motorsCallback( const snailbot_msgs::Motors& motors_msg) 
+void cmdDiffVelCallback( const snailbot_msgs::CmdDiffVel& diff_vel_msg) 
 {
-  if(motors_msg.leftPWM >= 0)
-    digitalWrite(left_motor_pwm, 1); 
-  else
-      digitalWrite(left_motor_pwm, 0);
-  if(motors_msg.rightPWM >= 0)
-    digitalWrite(right_motor_pwm, 1); 
-  else
-      digitalWrite(right_motor_pwm, 0);
-  analogWrite(left_motor_enable,abs(motors_msg.leftPWM));
-  analogWrite(right_motor_enable,abs(motors_msg.rightPWM));
+  left_motor_controller.desired_velocity = diff_vel_msg.left;
+  right_motor_controller.desired_velocity = diff_vel_msg.right;
+  last_cmd_time = millis();
 }
+
+void updateControl()
+{
+  left_motor_controller.current_encoder = left_encoder.read();
+  left_motor_controller.current_time = millis();
+  right_motor_controller.current_encoder = right_encoder.read();
+  right_motor_controller.current_time = millis();
+}
+void doControl(ControlData * ctrl)
+{
+  float estimated_velocity = meters_per_counts * (ctrl->current_encoder - ctrl->previous_encoder) * 1000.0 / (ctrl->current_time - ctrl->previous_time);
+  float error = ctrl->desired_velocity - estimated_velocity;
+  float cmd = Kp * error + Ki * (ctrl->total_error + error) + Kd * (error - ctrl->previous_error);
+  
+  cmd += ctrl->command;
+  
+  
+  if(cmd >= pwm_range)
+  {
+    cmd = pwm_range;
+  }
+  else if (cmd <= -pwm_range)
+  {
+    cmd = -pwm_range;
+  }
+  else
+  {
+    ctrl->total_error += error;
+  }
+  
+  ctrl->command = cmd;
+  ctrl->previous_time = ctrl->current_time;
+  ctrl->previous_encoder = ctrl->current_encoder;
+  ctrl->previous_error = error;
+  
+}
+
+void Control()
+{
+  updateControl();
+  
+  doControl(&left_motor_controller);
+  doControl(&right_motor_controller);
+  
+  if(left_motor_controller.desired_velocity > 0 || left_motor_controller.desired_velocity < 0)
+  {
+      left_motor.set_pwm(left_motor_controller.command);
+  }
+  else
+  {
+      left_motor.set_pwm(0);
+  }
+    
+  if(right_motor_controller.desired_velocity > 0 || right_motor_controller.desired_velocity < 0)
+  {
+      right_motor.set_pwm(right_motor_controller.command);
+  }
+  else
+  {
+      right_motor.set_pwm(0);
+  }
+}
+
 
 
 
