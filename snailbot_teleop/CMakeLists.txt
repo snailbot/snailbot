@@ -1,31 +1,13 @@
 cmake_minimum_required(VERSION 2.8.3)
 project(snailbot_teleop)
 
-## Find catkin macros and libraries
-## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
-## is used, also find other catkin packages
-find_package(catkin REQUIRED COMPONENTS roscpp joy geometry_msgs sensor_msgs)
+find_package(catkin REQUIRED COMPONENTS joy teleop_twist_joy roslaunch)
 
 catkin_package(
-  CATKIN_DEPENDS roscpp geometry_msgs sensor_msgs
-)
+  CATKIN_DEPENDS
+  )
 
-###########
-## Build ##
-###########
-
-include_directories(${catkin_INCLUDE_DIRS})
-
-add_executable(joystick_teleop src/joystick_teleop.cpp)
-target_link_libraries(joystick_teleop ${catkin_LIBRARIES})
-
-#############
-## Install ##
-#############
-
-install(TARGETS joystick_teleop
-  RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION})
-
-install(DIRECTORY launch
+install(DIRECTORY launch rviz
   DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION})
 
+roslaunch_add_file_check(launch/teleop.launch)

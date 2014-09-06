@@ -1,0 +1,14 @@
+<launch>
+  <!-- JOYSTICK -->
+  <node pkg="joy" type="joy_node" name="joy" >
+    <param name="dev" type="string" value="/dev/input/js0" />
+    <param name="deadzone" value="0.1" />
+    <param name="autorepeat_rate" value="25" />
+   </node>
+  <arg name="joy_config" default="atk3" />
+  <node pkg="teleop_twist_joy" name="teleop_twist_joy" type="teleop_node">
+    <rosparam command="load" file="$(find teleop_twist_joy)/config/$(arg joy_config).config.yaml" />
+  </node>
+  <!-- VISUALIZATION -->
+  <node pkg="rviz" type="rviz" name="rviz" args=" -d $(find snailbot_teleop)/rviz/teleop.rviz" respawn="false" /> 
+</launch>
