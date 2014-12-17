@@ -6,4 +6,15 @@
   </node> 
   <!-- Snailbot driver -->
   <node pkg="ros_arduino_base" type="ros_arduino_base_node" name="driver_node" output="screen" respawn="true" />
+  <node pkg="robot_pose_ekf" type="robot_pose_ekf" name="robot_pose_ekf">
+    <remap from="robot_pose_ekf/odom" to="odom_combined"/>
+    <param name="freq" value="10.0"/>
+    <param name="sensor_timeout" value="1.0"/>
+    <param name="publish_tf" value="true"/>
+    <param name="odom_used" value="true"/>
+    <param name="imu_used" value="false"/>
+    <param name="vo_used" value="false"/>
+    <param name="output_frame" value="odom"/>
+    <param name="base_footprint_frame" value="base_link"/>
+  </node>
 </launch>
