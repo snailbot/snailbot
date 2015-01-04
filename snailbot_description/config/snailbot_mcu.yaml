@@ -1,0 +1,7 @@
+port: /dev/ttyACM0
+baud: 115200
+pid_gains: [200,1,15]
+control_rate: [50]
+encoder_rate: [50]
+pwm_range: [255]
+no_cmd_timeout: [1]

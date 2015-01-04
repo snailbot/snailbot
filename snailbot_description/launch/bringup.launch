@@ -1,14 +1,15 @@
 <launch>
   <rosparam file="$(find snailbot_description)/config/snailbot.yaml" command="load" />
-  <node pkg="rosserial_python" type="serial_node.py" name="motor_controller" output="screen" respawn="true">
-    <param name="port" value="/dev/ttyACM0" />
-    <param name="baud" value="115200" />
+  <node pkg="rosserial_python" type="serial_node.py" name="diff_base_mcu" output="screen" respawn="true">
+    <rosparam file="$(find snailbot_description)/config/snailbot_mcu.yaml" command="load" />
   </node> 
   <!-- Snailbot driver -->
-  <node pkg="ros_arduino_base" type="ros_arduino_base_node" name="driver_node" output="screen" respawn="true" />
+  <node pkg="ros_arduino_base" type="ros_arduino_base_node" name="diff_base" output="screen" respawn="true">
+    <param name="publish_tf" value="false" />
+  </node>
   <node pkg="robot_pose_ekf" type="robot_pose_ekf" name="robot_pose_ekf">
-    <remap from="robot_pose_ekf/odom" to="odom_combined"/>
-    <param name="freq" value="10.0"/>
+    <remap from="robot_pose_ekf/odom_combined" to="odom_combined"/>
+    <param name="freq" value="50.0"/>
     <param name="sensor_timeout" value="1.0"/>
     <param name="publish_tf" value="true"/>
     <param name="odom_used" value="true"/>
